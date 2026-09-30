@@ -1,5 +1,6 @@
 import clientPromise from "./mongodb";
 import { createEmbedding } from "./gemini";
+import { performance } from "perf_hooks";
 
 const RELEVANCE_THRESHOLD = 0.8;
 
@@ -13,7 +14,13 @@ export async function searchKnowledgeBase(question: string): Promise<{
   relevant: boolean;
   results: RetrievedKnowledge[];
 }> {
+  const embeddingStart = performance.now();
+
   const questionEmbedding = await createEmbedding(question.trim());
+
+  const embeddingTimeMs = performance.now() - embeddingStart;
+
+  console.log(`Embedding generation took ${embeddingTimeMs.toFixed(0)} ms`);
 
   if (questionEmbedding.length === 0) {
     throw new Error("Unable to create question embedding.");
@@ -21,7 +28,7 @@ export async function searchKnowledgeBase(question: string): Promise<{
 
   const client = await clientPromise;
   const db = client.db("support-os");
-
+  const searchStart = performance.now();
   const results = await db
     .collection("kbDocuments")
     .aggregate<RetrievedKnowledge>([
@@ -46,6 +53,9 @@ export async function searchKnowledgeBase(question: string): Promise<{
       },
     ])
     .toArray();
+  const searchTimeMs = performance.now() - searchStart;
+
+  console.log(`MongoDB vector search took ${searchTimeMs.toFixed(0)} ms`);
 
   const bestScore = results[0]?.score ?? 0;
   const relevant = bestScore >= RELEVANCE_THRESHOLD;

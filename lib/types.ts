@@ -20,3 +20,14 @@ export interface KBDocument {
   content: string;
   embedding?: number[];
 }
+
+export type DraftStatus = "pending_review" | "approved_sent" | "rejected";
+
+export interface DraftResponse {
+  _id?: ObjectId;
+  ticketId: ObjectId;
+  aiGeneratedText: string;
+  editedText?: string;
+  status: DraftStatus;
+  reviewedByUserId?: ObjectId;
+}
