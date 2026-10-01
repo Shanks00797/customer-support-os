@@ -1,6 +1,8 @@
 import clientPromise from "../lib/mongodb";
 import type { KBDocument } from "../lib/types";
 
+const DEMO_TENANT_ID = "6abe65b875f9dac2302ce41f";
+
 const knowledgeBase: KBDocument[] = [
   {
     title: "Shipping Times",
@@ -62,7 +64,10 @@ const knowledgeBase: KBDocument[] = [
     content:
       "The support team generally responds to customer inquiries within one business day.",
   },
-];
+].map((document) => ({
+  ...document,
+  tenantId: DEMO_TENANT_ID,
+}));
 
 async function seedKnowledgeBase() {
   try {

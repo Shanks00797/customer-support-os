@@ -2,9 +2,16 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { createDraft } from "@/lib/drafts";
 import { DraftResponse } from "@/lib/types";
+import { auth } from "@/auth";
+import clientPromise from "@/lib/mongodb";
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
     const body = await request.json();
 
     const { ticketId, aiGeneratedText } = body;
@@ -27,7 +34,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const client = await clientPromise;
+    const db = client.db("support-os");
+
+    const ticket = await db.collection("tickets").findOne({
+      _id: new ObjectId(ticketId),
+      tenantId: session.user.tenantId,
+    });
+
+    if (!ticket) {
+      return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
+    }
+
     const draft: DraftResponse = {
+      tenantId: session.user.tenantId,
       ticketId: new ObjectId(ticketId),
       aiGeneratedText: aiGeneratedText.trim(),
       status: "pending_review",

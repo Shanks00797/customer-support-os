@@ -53,7 +53,10 @@ export async function POST(
       });
     }
 
-    const retrieval = await searchKnowledgeBase(ticket.message);
+    const retrieval = await searchKnowledgeBase(
+      ticket.message,
+      session.user.tenantId,
+    );
 
     if (!retrieval.relevant) {
       const aiGeneratedText =

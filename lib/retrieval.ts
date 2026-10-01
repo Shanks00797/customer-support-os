@@ -10,7 +10,10 @@ export interface RetrievedKnowledge {
   score: number;
 }
 
-export async function searchKnowledgeBase(question: string): Promise<{
+export async function searchKnowledgeBase(
+  question: string,
+  tenantId: string,
+): Promise<{
   relevant: boolean;
   results: RetrievedKnowledge[];
 }> {
@@ -39,6 +42,9 @@ export async function searchKnowledgeBase(question: string): Promise<{
           queryVector: questionEmbedding,
           numCandidates: 50,
           limit: 3,
+          filter: {
+            tenantId: { $eq: tenantId },
+          },
         },
       },
       {
