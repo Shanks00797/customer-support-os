@@ -44,6 +44,7 @@ export type DraftStatus = "pending_review" | "approved_sent" | "rejected";
 
 export interface DraftResponse {
   _id?: ObjectId;
+  tenantId: string;
   ticketId: ObjectId;
   aiGeneratedText: string;
   editedText?: string;

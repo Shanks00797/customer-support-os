@@ -5,12 +5,18 @@ import { getDraftForTicket, createDraft } from "@/lib/drafts";
 import { searchKnowledgeBase } from "@/lib/retrieval";
 import { generateSupportDraftStream } from "@/lib/ai";
 import type { DraftResponse, Ticket } from "@/lib/types";
+import { auth } from "@/auth";
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
     const { id } = await params;
 
     if (!ObjectId.isValid(id)) {
@@ -25,15 +31,19 @@ export async function POST(
     const client = await clientPromise;
     const db = client.db("support-os");
 
-    const ticket = await db
-      .collection<Ticket>("tickets")
-      .findOne({ _id: ticketId });
+    const ticket = await db.collection<Ticket>("tickets").findOne({
+      _id: ticketId,
+      tenantId: session.user.tenantId,
+    });
 
     if (!ticket) {
       return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
     }
 
-    const existingDraft = await getDraftForTicket(ticketId);
+    const existingDraft = await getDraftForTicket(
+      ticketId,
+      session.user.tenantId,
+    );
 
     if (existingDraft?.status === "pending_review") {
       return NextResponse.json({
@@ -50,6 +60,7 @@ export async function POST(
         "The available company information does not provide enough information to answer this question.";
 
       const draft: DraftResponse = {
+        tenantId: session.user.tenantId,
         ticketId,
         aiGeneratedText,
         status: "pending_review",
@@ -93,6 +104,7 @@ export async function POST(
           }
 
           const draft: DraftResponse = {
+            tenantId: session.user.tenantId,
             ticketId,
             aiGeneratedText: completeText.trim(),
             status: "pending_review",

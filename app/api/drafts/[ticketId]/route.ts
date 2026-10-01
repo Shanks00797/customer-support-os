@@ -2,27 +2,35 @@ import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { getDraftForTicket } from "@/lib/drafts";
+import { auth } from "@/auth";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ ticketId: string }> },
 ) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
     const { ticketId } = await params;
 
     if (!ObjectId.isValid(ticketId)) {
       return NextResponse.json({ error: "Invalid ticketId." }, { status: 400 });
     }
 
-    const draft = await getDraftForTicket(new ObjectId(ticketId));
+    const draft = await getDraftForTicket(
+      new ObjectId(ticketId),
+      session.user.tenantId,
+    );
 
     if (!draft) {
       return NextResponse.json({ error: "Draft not found." }, { status: 404 });
     }
 
-    return NextResponse.json({
-      draft,
-    });
+    return NextResponse.json({ draft });
   } catch (error) {
     console.error("Draft retrieval failed:", error);
 
@@ -38,6 +46,11 @@ export async function PATCH(
   { params }: { params: Promise<{ ticketId: string }> },
 ) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
     const { ticketId } = await params;
 
     if (!ObjectId.isValid(ticketId)) {
@@ -60,6 +73,7 @@ export async function PATCH(
     const updatedDraft = await db.collection("draftResponses").findOneAndUpdate(
       {
         ticketId: new ObjectId(ticketId),
+        tenantId: session.user.tenantId,
         status: "pending_review",
       },
       {

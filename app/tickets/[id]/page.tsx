@@ -43,7 +43,10 @@ export default async function TicketPage({
         notFound();
     }
 
-    const draft = await getDraftForTicket(new ObjectId(id));
+    const draft = await getDraftForTicket(
+        new ObjectId(id),
+        session.user.tenantId,
+    );
 
     return (
         <main>
