@@ -1,5 +1,7 @@
 import { ObjectId } from "mongodb";
 import { notFound } from "next/navigation";
+
+import { auth } from "@/auth";
 import GenerateDraftButton from "./GenerateDraftButton";
 import clientPromise from "@/lib/mongodb";
 import type { Ticket } from "@/lib/types";
@@ -15,13 +17,17 @@ interface TicketPageProps {
 export default async function TicketPage({
     params,
 }: TicketPageProps) {
+    const session = await auth();
+
+    if (!session?.user?.tenantId) {
+        notFound();
+    }
+
     const { id } = await params;
 
     if (!ObjectId.isValid(id)) {
         notFound();
     }
-
-    const draft = await getDraftForTicket(new ObjectId(id));
 
     const client = await clientPromise;
     const db = client.db("support-os");
@@ -30,11 +36,14 @@ export default async function TicketPage({
         .collection<Ticket>("tickets")
         .findOne({
             _id: new ObjectId(id),
+            tenantId: session.user.tenantId,
         });
 
     if (!ticket) {
         notFound();
     }
+
+    const draft = await getDraftForTicket(new ObjectId(id));
 
     return (
         <main>
@@ -73,10 +82,14 @@ export default async function TicketPage({
                     {draft.status === "pending_review" ? (
                         <DraftEditor
                             ticketId={ticket._id!.toString()}
-                            initialText={draft.editedText ?? draft.aiGeneratedText}
+                            initialText={
+                                draft.editedText ?? draft.aiGeneratedText
+                            }
                         />
                     ) : (
-                        <p>{draft.editedText ?? draft.aiGeneratedText}</p>
+                        <p>
+                            {draft.editedText ?? draft.aiGeneratedText}
+                        </p>
                     )}
                 </section>
             )}

@@ -1,4 +1,23 @@
 import { ObjectId } from "mongodb";
+
+export type UserRole = "admin" | "agent";
+
+export interface Tenant {
+  _id?: ObjectId;
+  name: string;
+  subscriptionTier: string;
+  createdAt: Date;
+}
+
+export interface User {
+  _id?: ObjectId;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  tenantId: string;
+}
+
 export type TicketStatus = "open" | "drafted" | "sent" | "escalated";
 
 export interface Ticket {

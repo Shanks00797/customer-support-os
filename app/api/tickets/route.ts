@@ -1,10 +1,17 @@
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import type { Ticket } from "@/lib/types";
+import { auth } from "@/auth";
 
 // ---------- POST HANDLER ----------
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const { customerName, customerEmail, subject, message } = body;
@@ -39,6 +46,7 @@ export async function POST(request: Request) {
     }
 
     const ticket: Ticket = {
+      tenantId: session.user.tenantId,
       customerName: customerName.trim(),
       customerEmail: customerEmail.trim(),
       subject: subject.trim(),
@@ -74,12 +82,19 @@ export async function POST(request: Request) {
 // ---------- GET HANDLER ----------
 export async function GET() {
   try {
+    const session = await auth();
+
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const tenantId = session.user.tenantId;
     const client = await clientPromise;
     const db = client.db("support-os");
 
     const tickets = await db
       .collection("tickets")
-      .find({})
+      .find({ tenantId })
       .sort({ createdAt: -1 })
       .toArray();
 
