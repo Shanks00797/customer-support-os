@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
-
 import clientPromise from "@/lib/mongodb";
 import { getDraftForTicket, createDraft } from "@/lib/drafts";
 import { searchKnowledgeBase } from "@/lib/retrieval";
