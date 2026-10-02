@@ -1,9 +1,13 @@
-import clientPromise from "../lib/mongodb";
-import { createEmbedding } from "../lib/gemini";
+import { loadEnvConfig } from "@next/env";
 import type { KBDocument } from "../lib/types";
+
+loadEnvConfig(process.cwd());
 
 async function embedKnowledgeBase() {
   try {
+    const { default: clientPromise } = await import("../lib/mongodb");
+    const { createEmbedding } = await import("../lib/gemini");
+
     const client = await clientPromise;
     const db = client.db("support-os");
 
